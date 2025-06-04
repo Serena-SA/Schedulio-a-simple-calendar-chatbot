@@ -1,0 +1,107 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Meeting Bot</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+
+  <header>
+  <div class="header-left">
+    <!-- img src="/static/logo.png" alt="Logo" --> <!-- This can be used for the left corner not to be empty-->
+  </div>
+  <div class="header-right user-info">
+    <span id="userName">User</span>
+    <img id="userPic" src="/static/default-user.png" alt="User Picture" />
+  </div>
+</header>
+
+
+  <main>
+    <h1>Meeting Bot</h1>
+
+    <div id="chat" class="chatbox"></div>
+    <div id="loading">The bot is thinking...</div>
+
+    <div class="input-area">
+      <textarea id="userInput" placeholder="Ask me to book a meeting..."></textarea>
+      <button onclick="sendMessage()" id="sendBtn">Send</button>
+    </div>
+  </main>
+
+  <script>
+    async function sendMessage() {
+      const input = document.getElementById("userInput");
+      const email = new URLSearchParams(window.location.search).get("email");
+      const message = input.value.trim();
+      if (!message || !email) return;
+      console.log("sendMessage() triggered");
+
+      appendBubble(message, 'user');
+      input.value = "";
+      toggleLoading(true);
+
+      try {
+        const res = await fetch("/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message, user_email: email })
+        });
+        console.log("Sending request with email:", email);
+
+
+        const data = await res.json();
+        appendBubble(data.response, 'bot');
+      } catch (err) {
+        appendBubble("❌ Something went wrong. Please try again.", 'bot');
+      } finally {
+        toggleLoading(false);
+      }
+    }
+
+    function appendBubble(text, role) {
+      const chat = document.getElementById("chat");
+      const bubble = document.createElement("div");
+      bubble.className = `bubble ${role}`;
+      bubble.innerText = text;
+      chat.appendChild(bubble);
+      chat.scrollTo({ top: chat.scrollHeight, behavior: "smooth" });
+    }
+
+    function toggleLoading(show) {
+      const loading = document.getElementById("loading");
+      const sendBtn = document.getElementById("sendBtn");
+      loading.style.display = show ? "block" : "none";
+      sendBtn.disabled = show;
+    }
+
+    document.getElementById("loading").style.display = "none";
+
+    window.onload = () => {
+      appendBubble("Hi there! I can help you book meetings on your Google calendar. Just tell me what you need", "bot");
+
+      const params = new URLSearchParams(window.location.search);
+      const name = params.get("name");
+      const email = params.get("email");
+      const pic = params.get("pic");
+
+      console.log("Received name:", name);
+      console.log("Received pic:", pic);
+      console.log("Received email:", email);
+
+      if (name) document.getElementById("userName").innerText = name;
+      if (pic) {
+        const userPic = document.getElementById("userPic");
+        const img = new Image();
+        img.onload = () => userPic.src = pic;
+        img.src = pic;
+      }
+      // if (email) document.getElementById("userEmail").value = email;
+    };
+
+
+  </script>
+</body>
+</html>
